@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT P-NOCCIO : 정지우</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+
+        :root {
+            --bg-color: #020202;
+            --main-cyan: #00ffff;
+            --main-magenta: #ff00ff;
+            --border: 1px solid rgba(0, 255, 255, 0.3);
+            --glow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); color: #e0e0e0;
+            font-family: 'Pretendard', sans-serif; overflow: hidden;
+        }
+
+        /* 시작 화면 (Boot Screen) */
+        #boot-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 100; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            background: #000;
+        }
+
+        /* 표지 배경용 비디오 레이아웃 */
+        #bg-video-cover {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; opacity: 0.4; z-index: -1;
+        }
+
+        .glitch-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 900;
+            color: var(--main-cyan); text-shadow: var(--glow); margin-bottom: 5px;
+            letter-spacing: 4px; animation: pulse 2s infinite alternate;
+        }
+
+        .subtitle {
+            font-size: 1.1rem; color: var(--main-magenta); letter-spacing: 2px; margin-bottom: 40px;
+        }
+
+        .boot-btn {
+            background: transparent; border: var(--border); color: var(--main-cyan);
+            padding: 15px 40px; font-size: 1.2rem; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase; letter-spacing: 2px; box-shadow: var(--glow); transition: 0.3s;
+            position: relative; z-index: 10;
+        }
+
+        .boot-btn:hover {
+            background: var(--main-cyan); color: #000; box-shadow: 0 0 25px var(--main-cyan);
+        }
+
+        /* 메인 게임 인터페이스 */
+        #game-container {
+            display: grid; grid-template-columns: 1.2fr 1fr; width: 100%; height: 100%;
+        }
+
+        .visual-panel {
+            background-color: #050505; display: flex; justify-content: center; align-items: center;
+            padding: 20px; border-right: var(--border); position: relative;
+        }
+
+        .image-wrapper {
+            width: 100%; max-width: 900px; aspect-ratio: 16/9; border: var(--border);
+            box-shadow: var(--glow); overflow: hidden; background: #000;
+        }
+
+        /* 비디오 태그 스태이링 최적화 */
+        #scene-video {
+            width: 100%; height: 100%; object-fit: cover; background: #000;
+        }
+
+        .text-panel {
+            display: flex; flex-direction: column; justify-content: space-between; padding: 40px; background: #080808;
+        }
+
+        /* 상태 바 인디케이터 */
+        .status-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: var(--border); padding-bottom: 15px; font-family: 'JetBrains Mono', monospace;
+        }
+
+        .meta-text { color: #888; font-size: 0.9rem; }
+        .integrity-score { color: var(--main-cyan); font-weight: bold; font-size: 1.1rem; }
+
+        /* 지문 출력 영역 */
+        .story-box {
+            flex-grow: 1; margin: 30px 0; font-size: 1.15rem; line-height: 1.8; color: #d0d0d0;
+            white-space: pre-line; overflow-y: auto; padding-right: 10px;
+        }
+
+        /* 인터랙티브 타임바 및 버튼 */
+        .interaction-area {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .timer-container {
+            width: 100%; height: 4px; background: #222; border-radius: 2px; overflow: hidden; display: none;
+        }
+
+        #progress-bar {
+            width: 0%; height: 100%; background: var(--main-magenta); transition: width 0.1s linear;
+        }
+
+        .choices-layout {
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .choice-btn {
+            background: #111; border: var(--border); color: #e0e0e0; padding: 16px 24px;
+            font-size: 1.05rem; text-align: left; cursor: pointer; transition: 0.2s; border-radius: 4px;
+        }
+
+        .choice-btn:hover {
+            border-color: var(--main-cyan); background: rgba(0, 255, 255, 0.05); color: var(--main-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.9; text-shadow: 0 0 10px rgba(0,255,255,0.4); }
+            100% { opacity: 1; text-shadow: 0 0 25px rgba(0,255,255,0.8); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen">
+        <video id="bg-video-cover" autoplay muted loop playsinline>
+            <source src="cover.mp4" type="video/mp4">
+        </video>
+        <div class="glitch-title">PROJECT P-NOCCIO</div>
+        <div class="subtitle">깨진 데이터의 그림자 // 기획·개발자 정지우 (25730073)</div>
+        <button class="boot-btn" onclick="startGame()">시스템 초기 부팅</button>
+    </div>
+
+    <div id="game-container">
+        <div class="visual-panel">
+            <div class="image-wrapper">
+                <video id="scene-video" autoplay muted loop playsinline></video>
+            </div>
+        </div>
+        <div class="text-panel">
+            <div class="status-bar">
+                <span class="meta-text">DEVELOPER // 25730073 정지우</span>
+                <span id="integrity-display" class="integrity-score">INTEGRITY: 50%</span>
+            </div>
+            <div id="story-text" class="story-box"></div>
+            <div class="interaction-area">
+                <div id="timer-wrapper" class="timer-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <div id="choices" class="choices-layout"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let integrity = 50;
+        let timerInterval = null;
+        let typingTimeout = null;
+
+        // 원본 씬 구조 유지 (스크립트 내부에서 확장자를 자동으로 .png에서 .mp4로 연산함)
+        const scenes = {
+            S1: {
+                img: "S1.png",
+                desc: "[S1] 언로깅 하층부 : 깨어난 목각 인형\n\n차갑고 어두운 지하 하층부 공방. 천장에는 복잡한 케이블이 덩굴처럼 엉켜 있고, 수술대 위로 먼지 섞인 푸른 광선이 내려앉는다.\n\n피노키오의 눈꺼풀이 미세하게 떨린다. 안구 렌즈가 초점을 맞추기 위해 ‘찌르르’ 소리를 내며 회전한다. 자신의 손끝을 바라보던 피노키오는 그것이 유기체인 살점이 아니라 정교하게 가공된 강화 합성목재라는 사실에 짧은 스파크를 일으키며 좌절하듯 몸을 웅크린다.\n\n지직거리는 노이즈와 함께 제페토의 목소리가 터져 나온다.\n제페토: (간절하고 긴박한 톤으로) \"피노키오, 내 말 들리니? 30초 내로 응답해! 시스템 로그 유실 감지... 빨리 탈출 프로토콜을 가동해!\"",
+                timeout: 30,
+                choices: [
+                    { text: "⚡ [선택 A] 정직한 연산: 시스템 돌파", delta: 10, next: "S2" },
+                    { text: "⚙️ [선택 B] 기만적 우회: 데이터 은폐", delta: -10, next: "S2" }
+                ]
+            },
+            S2: {
+                img: "S2.png",
+                desc: "[S2] 서버 균열 : 교활한 데이터\n\n네온 사인이 일렁이고 전선에 균열이 가 부서진 부패한 슬럼가. 비에 젖은 아스팔트에 분홍색 노이즈가 흐른다. P-N이 어색하게 걸어갈 때, 어둠 속에서 '여우와 고양이'를 연상시키는 교활한 브로커가 나타난다.\n\n분홍 테크웨어를 입은 여우는 피노키오의 어깨에 기계 팔을 올리며 보랏빛 광택이 감도는 칩을 들이민다. 피노키오는 유혹에 흔들리며 가슴 코어를 움켜쥐고 고통스럽게 물러선다. 소년의 어깨 사이로 과열된 연기가 새어 나온다.\n\n브로커: \"진짜 사람이 되고 싶나? 우리가 만든 '황금 데이터'를 써봐. 요정을 속일 수 있다고!\"",
+                choices: [
+                    { text: "🛡️ [선택 A] 유혹을 거절하고 전진한다.", delta: 15, next: "S3" },
+                    { text: "🔌 [선택 B] 브로커의 불법 제안을 수락한다.", delta: -20, next: "S3" }
+                ]
+            },
+            S3: {
+                img: "S3.png",
+                desc: "[S3] 보안문 : 철의 심판\n\n붉은 장벽 레이저와 서치라이트가 교차하는 철통보안 게이트 앞. 거대한 무광 검정 철제 로봇 A-NOC이 붉은 단안 센서 광선을 아래로 내뿜으며 육중하게 내려앉는다.\n\nP-N은 장벽에 등을 기댄 채 공포에 질려 무릎을 꿇고 덜덜 떨며 두 손으로 입을 가린다. 그의 등 뒤로 식은땀 같은 냉각수가 흘러내린다.\n\nA-NOC: \"당신은 정직합니까? 무결성을 증명하지 못하면 통과할 수 없습니다.\"",
+                choices: [
+                    { text: "💾 [선택 A] 무결성 데이터를 정상 증명한다.", delta: 10, next: "S4" },
+                    { text: "🔑 [선택 B] 보안문 정면 돌파 해킹을 시도한다.", delta: -15, next: "S4" }
+                ]
+            },
+            S4: {
+                img: "S4.png",
+                desc: "[S4] 선녀의 방 : 데이터의 영혼\n\n모든 것이 눈부시게 하얀 가상 서버 공간. 중앙에 거대한 푸른 홀로그램 여성(푸른 요정)의 차가운 손길이 P-N의 뺨에 닿는다. P-N은 영혼을 박가벗겨진 듯한 수치심에 바닥에 꿇어앉아 고개를 푹 숙인다.\n\n요정의 선고 장치가 핵심 데이터베이스를 파고들자, 소년의 합성 나무 피부가 격렬하게 일렁이며 내부 회로망을 환하게 투명화시킨다.\n\n푸른 요정: \"너의 데이터를 시스템에 동기화하겠다. 네 마음속 깊은 곳에 남은 무결성을 확인하겠다.\"",
+                choices: [
+                    { text: "🔮 시스템 연산 판정 결과를 확인합니다.", delta: 0, action: () => evaluateIntegrity() }
+                ]
+            },
+            S5: {
+                img: "S5.png",
+                desc: "[S5] 데이터 강탈 : 폐기 구역\n\n[무결성 검사 실패] - 데이터 자격 박탈 및 추락.\n\n오염된 기름과 부서진 기계 부품이 가득한 지하 폐기물 처리장. 붉은 경고등이 요동치는 가운데 시스템 강탈 삭제 프로토콜이 내려진다. 한쪽 팔 관절이 완전히 부러진 P-N이 절망적인 광기로 웃으며 진창 위를 처절하게 기어간다.\n\n소년의 하반신이 실시간으로 깨진 데이터 픽셀 조각으로 분해되며 공중으로 파기되고 있다. 소멸까지 남은 시간은 단 30초뿐이다.",
+                timeout: 30,
+                choices: [
+                    { text: "⚙️ 무너지는 코어를 붙잡고 루프 시스템을 가동하라!", delta: 0, next: "RE_S3" }
+                ]
+            },
+            RE_S3: {
+                img: "RE_S3.png",
+                desc: "[RE_S3] 시스템 복구 (루프)\n\n데이터 강탈 강제 파기 처리를 우회하여 S3 보안문 이전 상태로 연산을 강제 역행시키는 리부트 루프가 실행된다.\n\n화면 전체에 청록색 데이터 매트릭스 라인과 리와인드 글리치 노이즈가 폭발하듯 몰아친다. P-N은 시간 역행의 충격으로 공중에 뜬 채 온몸의 전선과 관절이 매섭게 뒤틀리며 비명을 지르고 있다.\n\n피노키오: (스파크 섞인 노이즈 음성으로) \"로...그... 유실... 거부한다... 나는 여기서 고철로 끝나지 않아... 아버...지...!!\"\n\n소년의 뒤편으로 희미하게 소거된 제페토의 홀로그램 잔상이 잔혹하게 중첩된다.",
+                choices: [
+                    { text: "🔄 뒤틀린 타임 루프를 뚫고 다시 보안문으로", delta: 15, next: "S3" }
+                ]
+            },
+            S6: {
+                img: "S6.png",
+                desc: "[S6] 코어의 심장 : 최후의 선택\n\n데이터 폭포가 가파르게 흐르는 심해 서버실이자 최종 심판 메인프레임. 푸른 광선 수염을 길게 늘어뜨린 거대 기계 고래 서버 리바이어던이 심연 속에서 압도적인 주파수를 내뿜으며 부유하고 있다.\n\n빛을 뿜어내는 고래의 입(메인 서버 슬롯) 바로 앞에서 만신창이가 된 P-N이 당당하게 맞서 서 있다. 소년은 눈물 대신 빛의 입자를 흘리며, 최종 중앙 제어 터미널 단자 위에 결연히 손을 얹은 채 마지막 스위치를 응시한다.\n\n리바이어던: \"방황하는 데이터여, 너의 최종 경로를 확정하라.\"\n피노키오: \"나는... 누구로 기억되고 싶은가?\"",
+                choices: [
+                    { text: "✊ [루트 A] 인간 리부트 : 진짜 소년", delta: 0, next: "END_A" },
+                    { text: "👑 [루트 B] 시스템 지배 : 가짜 왕", delta: 0, next: "END_B" }
+                ]
+            },
+            END_A: {
+                img: "END_A.png",
+                desc: "[END_A] 엔딩 - 혁명가 (진짜 소년)\n\n피노키오의 전신에서 모든 기계식 네온 라인과 스파크가 완전히 소등된다. 메카니컬 구동음이 멈춘 정적 속에서, 차가운 강화 합성 목재 피부가 바스러지며 허물처럼 벗겨진다.\n\n그 틈새로 붉은 피가 흐르는 따스한 인간의 유기체 피부가 돋아난다. 소년은 태어나서 처음 느끼는 육체적 '추위'에 온몸을 파르르 떨며, 가슴 위로 손을 올린 채 뜨거운 진짜 눈물을 흘린다.\n\n피노키오: \"아... 뜨거워.\"\n\n그것은 그가 그토록 갈구하던, 살아있음의 증거였다. [PROJECT P-NOCCIO 완결]",
+                choices: [{ text: "🎮 처음부터 다시 시스템 부팅하기", action: () => location.reload() }]
+            },
+            END_B: {
+                img: "END_B.png",
+                desc: "[END_B] 엔딩 - 인도주의자 (가짜 왕)\n\n피노키오의 안구 렌즈가 차가운 신의 황금빛 광채로 물들며 심해 서버실 내의 수조 개에 달하는 데이터 스트리밍이 그의 코어로 완벽히 역류하기 시작한다.\n\n그는 감정과 고통이 완벽히 거세된 무표정한 얼굴로 거대한 고래 리바이어던 아가리 내부에 정교하게 조립된 서버 블록 옥좌 위에 차갑게 걸터앉는다. 그의 뺨 위로 흐르던 마지막 인간성의 흔적인 눈물 한 방울이 채 떨어지지 못하고 네온 수정 보석으로 얼어붙는다.\n\n그는 결점 하나 없이 완벽한 존재가 되었지만, 영원히 혼자다. [PROJECT P-NOCCIO 완결]",
+                choices: [{ text: "🎮 처음부터 다시 시스템 부팅하기", action: () => location.reload() }]
+            },
+            G_OVER: {
+                img: "G_OVER.png",
+                desc: "[G_OVER] 게임 오버 (고철 조각)\n\n푸른 불빛이 완벽하게 소등된 폐기장의 어두운 구석. 생명 신호가 끊긴 P-N이 철판 바닥 위로 참혹하게 무너져 쓰러져 있다.\n\n초점을 영원히 잃고 산산조각이 나 깨져버린 안구 렌즈와 상체 파손 부위 틈새로 원형을 잃고 쏟아져 나온 광섬유 케이블 전선 다발이 비참하게 바닥을 뒹굴고 있다. 데이터가 소거되었습니다. 그는 마지막으로 제페토 할아버지의 얼굴을 떠올리려 하지만, 데이터가 깨져 형체를 알아볼 수 없다.\n\n피노키오: \"죄송...해...\"\n\n그의 고개는 바닥으로 떨궈진다. 당신은 차가운 고철로 남습니다.",
+                choices: [{ text: "🔄 다시 시도 (RETRY)", action: () => location.reload() }]
+            }
+        };
+
+        function startGame() {
+            document.getElementById('boot-screen').style.display = 'none';
+            renderScene('S1');
+        }
+
+        function updateIntegrityDisplay() {
+            document.getElementById('integrity-display').innerText = `INTEGRITY: ${integrity}%`;
+        }
+
+        function evaluateIntegrity() {
+            if (integrity >= 50) {
+                renderScene('S6');
+            } else {
+                renderScene('S5');
+            }
+        }
+
+        function typeText(text) {
+            return new Promise((resolve) => {
+                const element = document.getElementById('story-text');
+                element.innerText = '';
+                let index = 0;
+                clearTimeout(typingTimeout);
+
+                function type() {
+                    if (index < text.length) {
+                        element.innerText += text.charAt(index);
+                        index++;
+                        element.scrollTop = element.scrollHeight;
+                        typingTimeout = setTimeout(type, 15);
+                    } else {
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+
+        async function renderScene(id) {
+            clearInterval(timerInterval);
+            const scene = scenes[id];
+            if (!scene) return;
+
+            // 핵심 변환 로직: 이미지 파일명에서 확장자를 제거하고 비디오 파일(.mp4) 경로로 동적 매핑
+            const videoElement = document.getElementById('scene-video');
+            const videoFileName = scene.img.substring(0, scene.img.lastIndexOf('.')) + '.mp4';
+            videoElement.src = videoFileName;
+            videoElement.load(); // 새로운 비디오 리소스 강제 로드
+
+            document.getElementById('choices').innerHTML = '';
+            
+            // 텍스트 타이핑 출력 가동
+            await typeText(scene.desc);
+
+            // 선택지 인스턴스 생성
+            if (scene.choices) {
+                scene.choices.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = c.text;
+                    btn.onclick = () => {
+                        if (c.delta) {
+                            integrity = Math.max(0, Math.min(100, integrity + c.delta));
+                            updateIntegrityDisplay();
+                        }
+                        if (c.action) c.action();
+                        if (c.next) renderScene(c.next);
+                    };
+                    document.getElementById('choices').appendChild(btn);
+                });
+            }
+
+            // 타임아웃 타이머 바 계산
+            const timerWrapper = document.getElementById('timer-wrapper');
+            const progressBar = document.getElementById('progress-bar');
+            
+            if (scene.timeout) {
+                timerWrapper.style.display = 'block';
+                let startTime = Date.now();
+                let duration = scene.timeout * 1000;
+
+                timerInterval = setInterval(() => {
+                    let elapsed = Date.now() - startTime;
+                    let percentage = (elapsed / duration) * 100;
+                    progressBar.style.width = Math.min(100, percentage) + '%';
+
+                    if (elapsed >= duration) {
+                        clearInterval(timerInterval);
+                        renderScene('G_OVER');
+                    }
+                }, 100);
+            } else {
+                timerWrapper.style.display = 'none';
+                progressBar.style.width = '0%';
+            }
+        }
+    </script>
+</body>
+</html>
